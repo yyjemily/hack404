@@ -21,7 +21,6 @@ import './styles.css';
 import Home from './pages/Home';
 
 
-
 const router = createBrowserRouter([
   {
     path: "/",
