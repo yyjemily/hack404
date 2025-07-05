@@ -7,13 +7,12 @@ import numpy as np
 import torchvision.models as models
 import torch.optim as optim 
 
-from torch.utils.data import Dataset, DataLoader, random_split, WeightedDataSampler 
-from torchvision.models import resnet50, ResNet50_Weights
+from torch.utils.data import Dataset, DataLoader, random_split 
+from torchvision.models import DenseNet121_Weights, densenet121
 from torchvision import transforms
 from torchvision.transforms import ToTensor
 from PIL import Image 
 from collections import Counter
-
 
 
 #get data from dataset 
@@ -35,7 +34,7 @@ class DataSet(Dataset):
         return image, label
 
 
-dataset_obj = DataSet("/Users/emiliemui/hack404/opg_classification.csv", ["BDC-BDR", "Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"], transform=transform)
+dataset_obj = DataSet("/Users/emiliemui/hack404/opg_classification.csv", ["BDC-BDR", "Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"], transform=transforms)
 
 def load_data(): 
     transforms = transforms.compose([
