@@ -2,15 +2,15 @@
 import React, { StrictMode } from "react";
 import { createRoot } from 'react-dom/client';
 
-// 2. React Router
+// 2. Global CSS
+import './styles.css';
+
+// 3. React Router
 import {
   createBrowserRouter,
   RouterProvider,
 } from 'react-router-dom'
 
-
-// 3. Global CSS
-import './styles.css';
 
 // 4. App pages (for your <RouterProvider>)
 import Home     from './pages/Home.jsx';
@@ -27,3 +27,9 @@ const router = createBrowserRouter([
     element: <Chatbot />
   }
 ]);
+
+createRoot(document.getElementById("root")).render(
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
+);
