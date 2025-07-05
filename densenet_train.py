@@ -14,8 +14,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision.models import DenseNet121_Weights, densenet121
 from torchvision import transforms
 from torchvision.transforms import ToTensor
-from PIL import Image 
-from collections import Counter
+from PIL import Image, ImageFilter
 
 torch.manual_seed(1) 
 
@@ -41,10 +40,21 @@ torch.manual_seed(1)
 # dataset = DataSet("/opg_classification.csv", ["BDC-BDR, Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"], transform=transforms)
 class_list = ["BDC-BDR", "Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"]
 
+#preprocessing
 transform = transforms.Compose([
     transforms.Resize((224, 224)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
+
+# augmentation 
+augment_transform = transforms.Compose([
+   transforms.Resize((224, 224)),
+   transforms.RandomHorizontalFlip(p=1.0),
+   transforms.Lambda(lambda img: img.filter(ImageFilter.GaussianBlur(radius=1))),
+   transforms.ToTensor(),
+   transforms.Lambda(lambda x: x + 0.05 * torch.randn_like(x)),  #add noise, req a tensor 
+   transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
 ])
 
 dataset = torchvision.datasets.ImageFolder(
@@ -146,7 +156,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         correct_val = 0
         total_val = 0
         
-        with torch.no_grad():
+        with torch.no_grad(): 
             for images, labels in val_loader:
                 labels = labels.long()  
                 
@@ -161,7 +171,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         val_loss = val_loss / len(val_loader)
         val_acc = 100 * correct_val / total_val
         
-        # Store metrics
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         train_accuracies.append(train_acc)
@@ -172,7 +181,6 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%')
         print('-' * 50)
         
-        # Save best model
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), 'best_dental_model.pth')
@@ -217,32 +225,31 @@ def test_model(model, test_loader):
     
     return test_acc
 
-# # Plot training history
-# def plot_training_history(train_losses, val_losses, train_accuracies, val_accuracies):
-#     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+# Plot training history
+def plot_training_history(train_losses, val_losses, train_accuracies, val_accuracies):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
     
-#     # Plot losses
-#     ax1.plot(train_losses, label='Training Loss')
-#     ax1.plot(val_losses, label='Validation Loss')
-#     ax1.set_title('Training and Validation Loss')
-#     ax1.set_xlabel('Epoch')
-#     ax1.set_ylabel('Loss')
-#     ax1.legend()
-#     ax1.grid(True)
+    # Plot losses
+    ax1.plot(train_losses, label='Training Loss')
+    ax1.plot(val_losses, label='Validation Loss')
+    ax1.set_title('Training and Validation Loss')
+    ax1.set_xlabel('Epoch')
+    ax1.set_ylabel('Loss')
+    ax1.legend()
+    ax1.grid(True)
     
-#     # Plot accuracies
-#     ax2.plot(train_accuracies, label='Training Accuracy')
-#     ax2.plot(val_accuracies, label='Validation Accuracy')
-#     ax2.set_title('Training and Validation Accuracy')
-#     ax2.set_xlabel('Epoch')
-#     ax2.set_ylabel('Accuracy (%)')
-#     ax2.legend()
-#     ax2.grid(True)
+    # Plot accuracies
+    ax2.plot(train_accuracies, label='Training Accuracy')
+    ax2.plot(val_accuracies, label='Validation Accuracy')
+    ax2.set_title('Training and Validation Accuracy')
+    ax2.set_xlabel('Epoch')
+    ax2.set_ylabel('Accuracy (%)')
+    ax2.legend()
+    ax2.grid(True)
     
-#     plt.tight_layout()
-#     plt.show()
+    plt.tight_layout()
+    plt.show()
 
-# Start training
 if __name__ == "__main__":
     print("Starting training...")
     print(f"Number of classes: {len(class_list)}")
