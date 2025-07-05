@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dental AI Test</title>
+</head>
+<body>
+    <h1>Dental AI Test</h1>
+    <input type="file" id="fileInput" accept="image/*">
+    <button onclick="analyze()">Analyze</button>
+    <div id="result"></div>
+
+    <script src="client.js"></script>
+    <script>
+        const dentalAI = new DentalAI();
+
+        async function analyze() {
+            const file = document.getElementById('fileInput').files[0];
+            if (!file) return;
+
+            try {
+                const result = await dentalAI.analyze(file);
+                document.getElementById('result').innerHTML = 
+                    `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
