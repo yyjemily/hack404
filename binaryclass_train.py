@@ -19,8 +19,7 @@ from collections import Counter
 
 torch.manual_seed(1) 
 
-# dataset = DataSet("/opg_classification.csv", ["BDC-BDR, Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"], transform=transforms)
-class_list = ["BDC-BDR", "Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"]
+class_list = ["Healthy Teeth", "Unhealthy Teeth"]
 
 #preprocessing
 transform = transforms.Compose([
@@ -40,13 +39,12 @@ augment_transform = transforms.Compose([
 ])
 
 dataset = torchvision.datasets.ImageFolder(
-    root="/Users/emiliemui/Downloads/Dental OPG XRAY Dataset/Dental OPG (Classification)", 
+    root="/Users/emiliemui/hack404/OralHealthBinaryClassification", 
     transform=transform
 )
 dataset_size = len(dataset)
 
 def calculate_class_weights(dataset):
-    """Calculate class weights for imbalanced dataset"""
     class_counts = Counter()
     for _, label in dataset:
         class_counts[label] += 1
@@ -63,12 +61,6 @@ def calculate_class_weights(dataset):
     
     # Convert to tensor
     weights_tensor = torch.FloatTensor([class_weights[i] for i in range(len(class_list))])
-    
-    print("Class distribution:")
-    for i, class_name in enumerate(class_list):
-        count = class_counts.get(i, 0)
-        weight = class_weights[i]
-        print(f"{class_name}: {count} samples, weight: {weight:.3f}")
     
     return weights_tensor
 
@@ -87,7 +79,6 @@ train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle =True)
 val_loader = DataLoader(val_dataset, batch_size = batch_size, shuffle =False) 
 test_loader = DataLoader(test_dataset, batch_size = batch_size, shuffle =False) 
 
-print(train_loader)
 model = models.densenet121(weights=DenseNet121_Weights.IMAGENET1K_V1)
 #get num of output features from previous layer - used for num of input features in classifier layer
 input_features = model.classifier.in_features
@@ -175,10 +166,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         val_accuracies.append(val_acc)
         
         print(f'Epoch {epoch+1}/{num_epochs}:')
-        print(f'Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%')
-        print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%')
-        print('-' * 50)
-        
+        print(f'Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%')
+
         if val_acc > best_val_acc:
             best_val_acc = val_acc
             torch.save(model.state_dict(), 'best_dental_model.pth')
@@ -265,5 +254,5 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load('new_dental_model.pth'))
     test_accuracy = test_model(model, test_loader)
     
-    print(f"\nTraining completed! Best model saved as 'dental_model.pth'")
+    print(f"\nTraining completed!'")
     print(f"Final test accuracy: {test_accuracy:.2f}%")
