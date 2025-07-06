@@ -79,7 +79,7 @@ export default function Chatbot() {
       });
       const data = await response.json();
       console.log('Got this back:', data);
-    const diagnosticMessage = `The diagnosed patient has ${data.primary_finding || 'unknown condition'} of ${data.severity || 'moderate'} severity. Thus, there is an urgency of ${data.urgency || 'moderate'} so the next steps I would recommend is ${data.recommendations && data.recommendations.length > 0 ? data.recommendations.join(', ') : 'clinical evaluation'}.`;
+    const diagnosticMessage = `The diagnosed patient has ${data.primary_finding || 'unknown condition'} of ${data.severity || 'moderate'} severity. Thus, there is an urgency of ${data.urgency || 'moderate'} sso the next steps I would recommend is ${data.recommendations && data.recommendations.length > 0 ? data.recommendations.join(', ') : 'clinical evaluation'}.`;
 
     setMessages(prev => [...prev, { 
       id: Date.now() + 1,
