@@ -36,25 +36,25 @@ backend periodically, to ultimately summarize the prediagnositics of a patient's
 ### Installation
 1. JS frontend:
    - Navigate to the frontend directory
-     '''bash
-        cd frontend
-        npm install
-     '''
+   ```bash
+    cd frontend
+    npm install
+   ```
    - Run the js front end with
-     '''bash
-        npm start
-     '''
+   ```bash
+   npm start
+   ```
 2. Py backend:
   - Create and activate python virtual environment with python version 3.8.x
-    '''bash
+    ```bash
     pip install requirements.txt
     touch .env
-    '''
+    ```
     In the '.env' file, add:
-    '''
+    ```
     gemini_api_key = YOUR_GEMINI_API_KEY
-    '''
+    ```
     Then
-    '''bash
+    ```bash
     python api.py
-    '''
+    ```
