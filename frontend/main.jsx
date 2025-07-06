@@ -13,17 +13,11 @@ import {
 
 
 // 4. App pages (for your <RouterProvider>)
-import Home     from './pages/Home.jsx';
 import Chatbot  from './pages/Chatbot.jsx';
-
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />
-  },
-  {
-    path: "/chatbot",
     element: <Chatbot />
   }
 ]);
