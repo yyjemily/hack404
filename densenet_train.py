@@ -19,7 +19,6 @@ from collections import Counter
 
 torch.manual_seed(1) 
 
-# dataset = DataSet("/opg_classification.csv", ["BDC-BDR, Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"], transform=transforms)
 class_list = ["BDC-BDR", "Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"]
 
 #preprocessing
@@ -87,7 +86,6 @@ train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle =True)
 val_loader = DataLoader(val_dataset, batch_size = batch_size, shuffle =False) 
 test_loader = DataLoader(test_dataset, batch_size = batch_size, shuffle =False) 
 
-print(train_loader)
 model = models.densenet121(weights=DenseNet121_Weights.IMAGENET1K_V1)
 #get num of output features from previous layer - used for num of input features in classifier layer
 input_features = model.classifier.in_features
