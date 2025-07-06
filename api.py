@@ -15,7 +15,7 @@ from datetime import datetime
 model = models.resnet50(pretrained=False)
 model.fc = nn.Linear(model.fc.in_features,6)
 
-state_dict = torch.load("/Users/jennifertran/Downloads/model-handler/models/densenetpretrained_dental_model.pth", map_location=torch.device('cpu'))
+state_dict = torch.load('densenetpretrained_dental_model.pth', map_location=torch.device('cpu'))
 model.load_state_dict(state_dict)
 
 model.eval()
