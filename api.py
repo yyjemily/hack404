@@ -63,13 +63,14 @@ async def predict(file: UploadFile = File(...)):
         1: "Caries",
         2: "Fractured Teeth",
         3: "Healthy Teeth",
-        4: "Infection",
+        4: "Impacted teeth",
+        5: "Infection",
     }
 
     primary_finding = condition_map.get(predicted_class, "Unknown Condition")
 
-    def generate_response_message(finding,confidence,severity,urgency,next_steps):
-        message = f"The diagnosed patient has {finding} of {severity} severity."
+    def generate_response_message(primary_finding,confidence,severity,urgency,next_steps):
+        message = f"The diagnosed patient has {primary_finding} of {severity} severity."
         message+= f"Therefore, I suggest that there is an {urgency} urgency to seek {next_steps}."
         return message
    
