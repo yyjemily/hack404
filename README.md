@@ -25,7 +25,7 @@ backend periodically, to ultimately summarize the prediagnositics of a patient's
   patient diagnosis, and overlays bounding boxes or alert symbols based on the danger level.
 
 - **User Interaction:**
-  A toggle button allows the user to upload X-Ray images for patient diagnosis.
+A toggle button allows the user to upload X-Ray images for patient diagnosis.
 
 ## Project Setup
 
