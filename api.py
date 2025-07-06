@@ -42,7 +42,7 @@ async def status():
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     # Validate file type
-    if not file.content_type.startswith('image/'):
+    if not file.content_type or not file.content_type.startswith('image/'):
         raise HTTPException(status_code=400, detail="File must be an image")
     
     # Read file (for real implementation, this would go to your AI model)
