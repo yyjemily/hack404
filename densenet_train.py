@@ -19,7 +19,6 @@ from collection import Counter
 
 torch.manual_seed(1) 
 
-
 # dataset = DataSet("/opg_classification.csv", ["BDC-BDR, Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"], transform=transforms)
 class_list = ["BDC-BDR", "Caries", "Fractured Teeth", "Healthy Teeth", "Impacted teeth", "Infection"]
 
