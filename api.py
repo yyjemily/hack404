@@ -59,11 +59,11 @@ async def predict(file: UploadFile = File(...)):
     confidence = float(torch.max(predictions))*100
     predicted_class = int(torch.argmax(predictions))
     condition_map = {
-        0: "Normal",
-        1: "Cavity",
-        2: "Gum Disease",
-        3: "Impacted Tooth",
-        4: "Root Canal Needed",
+        0: "Broken Root Canal",
+        1: "Caries",
+        2: "Fractured Teeth",
+        3: "Healthy Teeth",
+        4: "Infection",
     }
 
     primary_finding = condition_map.get(predicted_class, "Unknown Condition")
@@ -74,19 +74,19 @@ async def predict(file: UploadFile = File(...)):
         return message
    
     finding_lower = primary_finding.lower()
-    if "normal" in finding_lower:
+    if "Healthy Teeth" in finding_lower:
         urgency = "low"
         next_steps = "routine monitoring and regular check-ups"
-    elif "caries" in finding_lower and confidence > 70:
+    elif "Caries" in finding_lower and confidence > 70:
         urgency = "moderate"
         next_steps = "restorative treatment and caries management"
-    elif "periodontal" in finding_lower:
+    elif "Fractured Teeth" in finding_lower:
         urgency = "moderate"
-        next_steps = "periodontal therapy and maintenance"
-    elif "impacted" in finding_lower:
+        next_steps = "extraction or restorative treatment"
+    elif "Infection" in finding_lower:
         urgency = "high"
         next_steps = "surgical consultation and extraction planning"
-    elif "root canal" in finding_lower:
+    elif "Broken Root Canal" in finding_lower:
         urgency = "high"
         next_steps = "endodontic treatment and pain management"
     else:
