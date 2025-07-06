@@ -93,11 +93,11 @@ async def predict(file: UploadFile = File(...)):
         urgency = "moderate"
         next_steps = "clinical correlation and follow-up examination"
     
-    user_message = generate_response_message(primary_finding, confidence, severity, urgency, next_steps)
+    user_message = generate_response_message(primary_finding, confidence, urgency, urgency, next_steps)
 
     # Add some realistic metadata
     response = {
-        "analysis_id": f"DENT_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+        "analysisid": f"DENT{datetime.now().strftime('%Y%m%d_%H%M%S')}",
         "timestamp": datetime.now().isoformat(),
         "image_info": {
             "filename": file.filename,
@@ -106,9 +106,8 @@ async def predict(file: UploadFile = File(...)):
         },
         "primary_finding": primary_finding,
         "confidence": int(confidence),
-        "user_message": user_message,  # Add this line
-        "severity": severity,
-        "urgency": urgency,
+        
+        "severity": random.choice(["mild", "moderate", "severe"]),
         "affected_teeth": ["#14", "#15"],  # You might want to make this dynamic
         "recommendations": [
             "Clinical correlation recommended",
@@ -126,7 +125,7 @@ async def predict(file: UploadFile = File(...)):
         "next_steps": "Clinical correlation and patient examination recommended",
         "disclaimer": "AI analysis for screening purposes only. Final diagnosis requires clinical evaluation."
     }
-    
+
     return JSONResponse(content=response)
 
 if __name__ == "__main__":
