@@ -8,9 +8,10 @@ import torchvision.models as models
 import torch.optim as optim 
 import seaborn as sns
 import torchvision 
+from collections import Counter
 
-from sklearn.metrics import confusion_matrix
-from torch.utils.data import Dataset, DataLoader, random_split 
+from sklearn.metrics import confusion_matrix, classification_report, f1_score
+from torch.utils.data import Dataset, DataLoader, random_split, WeightedRandomSampler
 from torchvision.models import DenseNet121_Weights, densenet121
 from torchvision import transforms
 from torchvision.transforms import ToTensor
@@ -63,19 +64,36 @@ dataset = torchvision.datasets.ImageFolder(
 )
 dataset_size = len(dataset)
 
-#WEIGHT SAMPLING STUFFFF ADDDDD LATERRRRRRR--------------------------------------
-# #make class weights 
+# Calculate class weights to handle imbalanced data
+def calculate_class_weights(dataset):
+    """Calculate class weights for imbalanced dataset"""
+    class_counts = Counter()
+    for _, label in dataset:
+        class_counts[label] += 1
+    
+    total_samples = len(dataset)
+    class_weights = {}
+    
+    for class_idx in range(len(class_list)):
+        if class_idx in class_counts:
+            # Inverse frequency weighting: more samples = lower weight
+            class_weights[class_idx] = total_samples / (len(class_list) * class_counts[class_idx])
+        else:
+            class_weights[class_idx] = 1.0
+    
+    # Convert to tensor
+    weights_tensor = torch.FloatTensor([class_weights[i] for i in range(len(class_list))])
+    
+    print("Class distribution:")
+    for i, class_name in enumerate(class_list):
+        count = class_counts.get(i, 0)
+        weight = class_weights[i]
+        print(f"{class_name}: {count} samples, weight: {weight:.3f}")
+    
+    return weights_tensor
 
-# class_count = Counter() #stores amt of data in each classification
-# for ind in len(dataset_obj.class_list):
-#     class_count[ind] += 1
-
-# class_weights = {}
-# #calculate class weights 
-# for class_ind in class_count:
-#     count = class_count[class_ind]
-#     class_weights[class_ind] = (dataset_obj.__len__)/count
-
+# Calculate class weights
+class_weights = calculate_class_weights(dataset)
 
 #split data 80-10-10
 train_size = int(0.8 * dataset_size)
@@ -84,12 +102,32 @@ test_size = dataset_size - train_size - val_size
 
 train_dataset, val_dataset, test_dataset = random_split(dataset, [train_size, val_size, test_size])
 
-batch_size = 32
-train_loader = DataLoader(train_dataset, batch_size = batch_size, shuffle =True) 
-val_loader = DataLoader(val_dataset, batch_size = batch_size, shuffle =False) 
-test_loader = DataLoader(test_dataset, batch_size = batch_size, shuffle =False) 
+# Calculate sample weights for weighted sampling
+def get_sample_weights(dataset_split):
+    """Get sample weights for weighted random sampling"""
+    sample_weights = []
+    for idx in dataset_split.indices:
+        _, label = dataset[idx]
+        sample_weights.append(class_weights[label].item())
+    return sample_weights
 
-print(train_loader)
+# Get sample weights for training set
+train_sample_weights = get_sample_weights(train_dataset)
+train_sampler = WeightedRandomSampler(
+    weights=train_sample_weights,
+    num_samples=len(train_sample_weights),
+    replacement=True
+)
+
+batch_size = 32
+train_loader = DataLoader(train_dataset, batch_size=batch_size, sampler=train_sampler) 
+val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False) 
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False) 
+
+print(f"Training samples: {len(train_dataset)}")
+print(f"Validation samples: {len(val_dataset)}")
+print(f"Test samples: {len(test_dataset)}")
+
 model = models.densenet121(weights=DenseNet121_Weights.IMAGENET1K_V1)
 #get num of output features from previous layer - used for num of input features in classifier layer
 input_features = model.classifier.in_features
@@ -109,7 +147,8 @@ for param in model.parameters():
     if param.requires_grad:
         trainable_params.append(param)
 
-criterion = nn.CrossEntropyLoss()
+# Use weighted CrossEntropyLoss to handle class imbalance
+criterion = nn.CrossEntropyLoss(weight=class_weights)
 optimizer = optim.Adam(trainable_params, lr=1e-3)
 
 
@@ -118,8 +157,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
     val_losses = []
     train_accuracies = []
     val_accuracies = []
+    val_f1_scores = []
     
     best_val_acc = 0.0
+    best_val_f1 = 0.0
+    patience = 5
+    patience_counter = 0
     
     for epoch in range(num_epochs):
         # Training phase
@@ -155,6 +198,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
         val_loss = 0.0
         correct_val = 0
         total_val = 0
+        all_val_preds = []
+        all_val_labels = []
         
         with torch.no_grad(): 
             for images, labels in val_loader:
@@ -167,26 +212,42 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, num_epoch
                 _, predicted = torch.max(outputs.data, 1)
                 total_val += labels.size(0)
                 correct_val += (predicted == labels).sum().item()
+                
+                all_val_preds.extend(predicted.cpu().numpy())
+                all_val_labels.extend(labels.cpu().numpy())
         
         val_loss = val_loss / len(val_loader)
         val_acc = 100 * correct_val / total_val
+        
+        # Calculate F1 score for validation
+        val_f1 = f1_score(all_val_labels, all_val_preds, average='weighted')
         
         train_losses.append(train_loss)
         val_losses.append(val_loss)
         train_accuracies.append(train_acc)
         val_accuracies.append(val_acc)
+        val_f1_scores.append(val_f1)
         
         print(f'Epoch {epoch+1}/{num_epochs}:')
         print(f'Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}%')
-        print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%')
+        print(f'Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.2f}%, Val F1: {val_f1:.4f}')
         print('-' * 50)
         
-        if val_acc > best_val_acc:
+        # Early stopping based on F1 score (better for imbalanced data)
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
             best_val_acc = val_acc
             torch.save(model.state_dict(), 'best_dental_model.pth')
-            print(f'New best model saved! Val Acc: {val_acc:.2f}%')
+            print(f'New best model saved! Val F1: {val_f1:.4f}, Val Acc: {val_acc:.2f}%')
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            
+        if patience_counter >= patience:
+            print(f'Early stopping triggered after {epoch+1} epochs')
+            break
     
-    return train_losses, val_losses, train_accuracies, val_accuracies
+    return train_losses, val_losses, train_accuracies, val_accuracies, val_f1_scores
 
 # Test function
 def test_model(model, test_loader):
@@ -208,7 +269,14 @@ def test_model(model, test_loader):
             all_labels.extend(labels.cpu().numpy())
     
     test_acc = 100 * correct / total
+    test_f1 = f1_score(all_labels, all_predictions, average='weighted')
+    
     print(f'Test Accuracy: {test_acc:.2f}%')
+    print(f'Test F1 Score: {test_f1:.4f}')
+    
+    # Detailed classification report
+    print("\nClassification Report:")
+    print(classification_report(all_labels, all_predictions, target_names=class_list))
     
     # Confusion Matrix
     cm = confusion_matrix(all_labels, all_predictions)
@@ -223,11 +291,11 @@ def test_model(model, test_loader):
     plt.tight_layout()
     plt.show()
     
-    return test_acc
+    return test_acc, test_f1
 
 # Plot training history
-def plot_training_history(train_losses, val_losses, train_accuracies, val_accuracies):
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+def plot_training_history(train_losses, val_losses, train_accuracies, val_accuracies, val_f1_scores):
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 5))
     
     # Plot losses
     ax1.plot(train_losses, label='Training Loss')
@@ -247,6 +315,14 @@ def plot_training_history(train_losses, val_losses, train_accuracies, val_accura
     ax2.legend()
     ax2.grid(True)
     
+    # Plot F1 scores
+    ax3.plot(val_f1_scores, label='Validation F1 Score', color='red')
+    ax3.set_title('Validation F1 Score')
+    ax3.set_xlabel('Epoch')
+    ax3.set_ylabel('F1 Score')
+    ax3.legend()
+    ax3.grid(True)
+    
     plt.tight_layout()
     plt.show()
 
@@ -256,16 +332,17 @@ if __name__ == "__main__":
     print(f"Classes: {class_list}")
     
     # Train the model
-    train_losses, val_losses, train_accuracies, val_accuracies = train_model(
+    train_losses, val_losses, train_accuracies, val_accuracies, val_f1_scores = train_model(
         model, train_loader, val_loader, criterion, optimizer, num_epochs=25
     )
     
     # Plot training history
-    #plot_training_history(train_losses, val_losses, train_accuracies, val_accuracies)
+    plot_training_history(train_losses, val_losses, train_accuracies, val_accuracies, val_f1_scores)
     
     # Load best model and test
-    model.load_state_dict(torch.load('new_dental_model.pth'))
-    test_accuracy = test_model(model, test_loader)
+    model.load_state_dict(torch.load('best_dental_model.pth'))
+    test_accuracy, test_f1 = test_model(model, test_loader)
     
-    print(f"\nTraining completed! Best model saved as 'dental_model.pth'")
+    print(f"\nTraining completed! Best model saved as 'best_dental_model.pth'")
     print(f"Final test accuracy: {test_accuracy:.2f}%")
+    print(f"Final test F1 score: {test_f1:.4f}")
